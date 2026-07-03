@@ -12,7 +12,7 @@ app.get('/',(req,res)=>{
 })
 
 app.post('/upload',upload.single("pdf"),(req,res)=>{
-    console.log(res.file);
+    console.log(req.file);
     res.send("file uploaded done!")
     
 
