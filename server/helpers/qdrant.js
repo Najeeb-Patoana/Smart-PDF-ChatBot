@@ -1,7 +1,6 @@
 const { QdrantClient } = require("@qdrant/js-client-rest");
 const { randomUUID } = require("crypto");
 
-/** Singleton Qdrant client shared across all route handlers */
 const qdrant = new QdrantClient({
     url: process.env.QDRANT_URL,
     apiKey: process.env.QDRANT_API_KEY,
@@ -10,11 +9,12 @@ const qdrant = new QdrantClient({
 
 const COLLECTION = "pdf-docs";
 
+// ── Payload index ─────────────────────────────────────────────────────────────
+
 /**
- * Ensure the `documentId` keyword payload index exists on the collection.
- *
- * Qdrant Cloud REQUIRES a payload index before a field can be used in a filter.
- * This is idempotent — calling it when the index already exists is safe.
+ * Create (or confirm) a keyword payload index on the `documentId` field.
+ * Qdrant Cloud REQUIRES this index before the field can be used in a filter.
+ * Safe to call multiple times — "already exists" errors are silently ignored.
  */
 async function ensurePayloadIndex() {
     try {
@@ -22,27 +22,46 @@ async function ensurePayloadIndex() {
             field_name: "documentId",
             field_schema: "keyword",
         });
-        console.log("[Qdrant] Payload index on 'documentId' ready.");
     } catch (err) {
-        // "already exists" errors are expected and harmless on subsequent calls
-        const msg = err?.message || "";
-        if (!msg.toLowerCase().includes("already") && !msg.toLowerCase().includes("conflict")) {
-            console.warn("[Qdrant] Warning ensuring payload index:", msg);
+        // 400 / 409 = index already exists → fine
+        const status = err?.status ?? err?.response?.status ?? 0;
+        const msg = (err?.message ?? "").toLowerCase();
+        const isExpected = status === 409 || status === 400 ||
+            msg.includes("already") || msg.includes("conflict") ||
+            msg.includes("exists");
+        if (!isExpected) {
+            // Log only the first line — never the full error that may include URLs / keys
+            console.warn("[Qdrant] Payload index warning:", msg.split("\n")[0]);
         }
     }
 }
 
 /**
- * Store chunk embeddings for a specific document.
+ * Called once at server startup.
+ * Verifies the collection is reachable and ensures the payload index is ready.
+ */
+async function initializeQdrant() {
+    // Verify the collection exists
+    const info = await qdrant.getCollection(COLLECTION);
+    if (!info) throw new Error(`Collection '${COLLECTION}' not found. Run GET /create-collection first.`);
+
+    // Ensure the payload index is in place before any request arrives
+    await ensurePayloadIndex();
+    console.log(`[Qdrant] Collection '${COLLECTION}' ready with payload index.`);
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Store chunk embeddings for a document.
+ * Payload: { documentId, chunkIndex, text }
  *
- * Each point payload: { documentId, chunkIndex, text }
- * The documentId payload index is created/confirmed before every upload
- * so that Qdrant filter queries always work.
- *
- * @param {string} documentId
- * @param {{ text: string, embedding: number[] }[]} chunkEmbeddings
+ * The payload index is confirmed BEFORE the upsert so the filter works immediately.
  */
 async function storeChunks(documentId, chunkEmbeddings) {
+    // Ensure index is present before writing — belt-and-suspenders
+    await ensurePayloadIndex();
+
     const points = chunkEmbeddings.map((item, index) => ({
         id: randomUUID(),
         vector: item.embedding,
@@ -54,25 +73,19 @@ async function storeChunks(documentId, chunkEmbeddings) {
     }));
 
     await qdrant.upsert(COLLECTION, { points });
-
-    // Always ensure the payload index exists so filters work on Qdrant Cloud
-    await ensurePayloadIndex();
 }
 
+// ── Search ────────────────────────────────────────────────────────────────────
+
 /**
- * Search for the top-k most relevant chunks scoped to a single document.
- *
- * The `documentId` filter ensures chunks from other PDFs are never returned.
- *
- * @param {string} documentId
- * @param {number[]} queryVector
- * @param {number} [limit=5]
- * @returns {Promise<string[]>} ordered array of matching chunk texts
+ * Find the top-k most relevant chunks for a question, scoped to one document.
+ * Uses a Qdrant payload filter — chunks from other PDFs are never returned.
  */
 async function searchChunks(documentId, queryVector, limit = 5) {
     const results = await qdrant.search(COLLECTION, {
         vector: queryVector,
         limit,
+        with_payload: true,
         filter: {
             must: [
                 {
@@ -86,4 +99,4 @@ async function searchChunks(documentId, queryVector, limit = 5) {
     return results.map((r) => r.payload.text);
 }
 
-module.exports = { qdrant, COLLECTION, storeChunks, searchChunks, ensurePayloadIndex };
+module.exports = { qdrant, COLLECTION, storeChunks, searchChunks, initializeQdrant };
