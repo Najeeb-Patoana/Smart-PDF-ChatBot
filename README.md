@@ -109,21 +109,27 @@ cd Smart-PDF-ChatBot
 
 ---
 
-### 2. Configure the backend
+### 2. Create a `.env` file in the `server/` directory (use `.env.example` as the template):
 
 ```bash
-cd server
+cp server/.env.example server/.env
 ```
-
-Create a `.env` file in the `server/` directory:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-QDRANT_URL=https://your-cluster.qdrant.io
+QDRANT_URL=https://your-cluster-id.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key_here
+
+# Server port (default: 3000)
+PORT=3000
+
+# Comma-separated list of allowed frontend URLs
+# Add your production frontend URL here when deploying
+CORS_ORIGIN=http://localhost:5173
 ```
 
-> **Important:** Never commit `.env` — it is already listed in `.gitignore`.
+> **Important:** Never commit `.env` — it is already listed in `.gitignore`.  
+> The `.env.example` file is safe to commit — it contains no real secrets.
 
 Install backend dependencies:
 

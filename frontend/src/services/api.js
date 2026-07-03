@@ -1,9 +1,14 @@
 import axios from 'axios'
 
+// VITE_API_URL is set in frontend/.env (or frontend/.env.example as reference)
+// Vite only exposes variables prefixed with VITE_ to the browser bundle
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: BASE_URL,
   timeout: 300_000, // 5 minutes max for large PDFs
 })
+
 
 /**
  * Parse an Axios error into a safe, user-facing message.

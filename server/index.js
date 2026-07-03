@@ -15,6 +15,17 @@ const { chunkText }                                        = require("./helpers/
 const { storeChunks, searchChunks, qdrant,
         COLLECTION, initializeQdrant }                     = require("./helpers/qdrant");
 
+// ── Environment config ────────────────────────────────────────────────────────
+// CORS_ORIGIN: comma-separated list of allowed frontend URLs
+//   e.g. "http://localhost:5173,https://my-app.vercel.app"
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
+
+
 // ── Validation ────────────────────────────────────────────────────────────────
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -59,9 +70,9 @@ const app = express();
 // Security headers (hide X-Powered-By, set CSP, etc.)
 app.use(helmet());
 
-// CORS — only allow our own frontend origin
+// CORS — origins loaded from CORS_ORIGIN env var
 app.use(cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
     optionsSuccessStatus: 200,
@@ -303,10 +314,11 @@ async function start() {
         console.warn("[Server] Ensure the collection exists — visit GET /create-collection");
     }
 
-    app.listen(3000, () => {
-        console.log("PDF Intelligence server  →  http://localhost:3000");
-        console.log("  POST /upload  — index a PDF");
-        console.log("  POST /ask     — answer a question");
+    app.listen(PORT, () => {
+        console.log(`PDF Intelligence server  -->  http://localhost:${PORT}`);
+        console.log("  POST /upload  -- index a PDF");
+        console.log("  POST /ask     -- answer a question");
+        console.log(`  Allowed origins: ${ALLOWED_ORIGINS.join(", ")}`);
     });
 }
 
