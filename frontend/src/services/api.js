@@ -2,46 +2,73 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: 'http://localhost:3000',
-  // Upload can take a while (many chunks to embed with rate-limit delays)
-  // Ask is fast (1 embedding + 1 search + 1 generation)
-  timeout: 300_000, // 5 minutes max for very large PDFs
+  timeout: 300_000, // 5 minutes max for large PDFs
 })
 
 /**
- * Upload a PDF and index it.
- * The PDF is processed ONCE. The returned documentId is all you need
- * to ask unlimited follow-up questions without re-uploading.
+ * Parse an Axios error into a safe, user-facing message.
+ * NEVER exposes: status codes, server internals, API keys, or raw JSON.
+ * @param {unknown} err
+ * @returns {string}
+ */
+function parseApiError(err) {
+  // Server returned a JSON { message } — already sanitized by the server
+  if (err?.response?.data?.message) {
+    return err.response.data.message
+  }
+  // Network error (server not running)
+  if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
+    return 'Cannot reach the server. Make sure the backend is running on port 3000.'
+  }
+  // Request timed out
+  if (err?.code === 'ECONNABORTED') {
+    return 'The request timed out. Your PDF may be very large — please try again.'
+  }
+  // Fallback — deliberately vague
+  return 'Something went wrong. Please try again.'
+}
+
+/**
+ * Upload a PDF and index it in Qdrant.
+ * The document is processed ONCE. Use the returned documentId for all questions.
  *
  * @param {File} pdfFile
  * @returns {Promise<{ documentId: string, chunkCount: number, message: string }>}
  */
 export async function uploadPDF(pdfFile) {
-  const formData = new FormData()
-  formData.append('pdf', pdfFile)
+  try {
+    const formData = new FormData()
+    formData.append('pdf', pdfFile)
 
-  const response = await api.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+    const response = await api.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
 
-  return response.data // { success, message, documentId, chunkCount }
+    return response.data
+  } catch (err) {
+    throw new Error(parseApiError(err))
+  }
 }
 
 /**
  * Ask a question about an already-indexed PDF.
- * Only the question is embedded — the document is NOT re-processed.
+ * Only the question is embedded — the PDF is NOT re-processed.
  *
  * @param {string} documentId - returned by uploadPDF()
  * @param {string} question
  * @returns {Promise<string>} AI-generated answer
  */
 export async function askQuestion(documentId, question) {
-  const response = await api.post(
-    '/ask',
-    { documentId, question },
-    { headers: { 'Content-Type': 'application/json' } }
-  )
-
-  return response.data.answer
+  try {
+    const response = await api.post(
+      '/ask',
+      { documentId, question },
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+    return response.data.answer
+  } catch (err) {
+    throw new Error(parseApiError(err))
+  }
 }
 
 export default api

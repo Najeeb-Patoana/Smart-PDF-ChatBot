@@ -77,15 +77,6 @@ export default function AnalyzeCard() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const parseError = (err) => {
-    if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error'))
-      return 'Cannot reach the server. Make sure the backend is running on port 3000.'
-    if (err?.response?.status === 429)
-      return 'Gemini API rate limit reached. Please wait 30 seconds and try again.'
-    if (err?.response?.status === 404)
-      return 'No relevant content found for that question.'
-    return err?.response?.data?.message || 'Something went wrong. Please try again.'
-  }
 
   // ── Phase 1: Upload ─────────────────────────────────────────────────────────
   const handleUpload = async () => {
@@ -102,7 +93,7 @@ export default function AnalyzeCard() {
         fileName: file.name,
       })
     } catch (err) {
-      setUploadError(parseError(err))
+      setUploadError(err.message || 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -121,7 +112,7 @@ export default function AnalyzeCard() {
       setResponse(answer)
       setTimestamp(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     } catch (err) {
-      setAskError(parseError(err))
+      setAskError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setAsking(false)
     }
