@@ -18,7 +18,6 @@ export default function Navbar() {
 
         {/* Author */}
         <div className={styles.author}>
-          <span className={styles.authorBy}>by</span>
           <span className={styles.authorName}>Najeeb Ullah Khan</span>
         </div>
       </div>
