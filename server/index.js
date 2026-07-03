@@ -9,12 +9,12 @@ app.get('/',(req,res)=>{
      res.send("Najeeb Ullah Khan")
 })
 
-app.post('/upload',upload.single("pdf"),(req,res)=>{
+app.post('/upload',upload.single("pdf"),async(req,res)=>{
     console.log(req.file);
 
     const dataBuffer= fs.readFileSync(req.file.path)
       
-    const pdfData= pdfParse(dataBuffer);
+    const pdfData= await pdfParse(dataBuffer);
 
 
     res.send("file uploaded done!")
