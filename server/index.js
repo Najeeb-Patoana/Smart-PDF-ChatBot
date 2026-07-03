@@ -3,6 +3,7 @@ const multer = require('multer');
 const app = express();
 const upload = multer({dest:"uploads"})
 const pdfParse=require('pdf-parse')
+const fs=require('fs')
 app.get('/',(req,res)=>{
     
      res.send("Najeeb Ullah Khan")
