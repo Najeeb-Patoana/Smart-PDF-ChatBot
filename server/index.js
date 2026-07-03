@@ -10,7 +10,7 @@ require("dotenv").config();
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const { ai, createEmbedding } = require("./helpers/embedding");
 const { chunkText }           = require("./helpers/chunking");
-const { storeChunks, searchChunks, qdrant, COLLECTION } = require("./helpers/qdrant");
+const { storeChunks, searchChunks, qdrant, COLLECTION, ensurePayloadIndex } = require("./helpers/qdrant");
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 const app = express();
@@ -208,7 +208,9 @@ app.get("/create-collection", async (req, res) => {
         await qdrant.createCollection(COLLECTION, {
             vectors: { size: 3072, distance: "Cosine" },
         });
-        res.json({ success: true, message: `Collection '${COLLECTION}' created.` });
+        // Create the payload index immediately so filters work from the first upload
+        await ensurePayloadIndex();
+        res.json({ success: true, message: `Collection '${COLLECTION}' created with payload index.` });
     } catch (err) {
         sendError(res, 500, err.message);
     }

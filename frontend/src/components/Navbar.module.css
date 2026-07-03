@@ -54,5 +54,37 @@
 }
 
 @media (max-width: 480px) {
-  .brandTagline { display: none; }
+  .brandTagline {
+    display: none;
+  }
+}
+
+/* ── Author ─────────────────────────────────────────────────────────────────── */
+.author {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authorBy {
+  font-size: 0.72rem;
+  color: var(--color-text-light);
+  font-weight: 400;
+}
+
+.authorName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 480px) {
+  .authorBy {
+    display: none;
+  }
+
+  .authorName {
+    font-size: 0.75rem;
+  }
 }
