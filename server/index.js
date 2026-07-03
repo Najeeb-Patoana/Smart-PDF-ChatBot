@@ -15,9 +15,9 @@ app.post('/upload',upload.single("pdf"),async(req,res)=>{
     const dataBuffer= fs.readFileSync(req.file.path)
       
     const pdfData= await pdfParse(dataBuffer);
+    const text=pdfData.text;
 
-
-    res.send("file uploaded done!")
+    res.send(text)
     
 
 }) 
