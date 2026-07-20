@@ -15,9 +15,7 @@ const { chunkText }                                        = require("./helpers/
 const { storeChunks, searchChunks, qdrant,
         COLLECTION, initializeQdrant }                     = require("./helpers/qdrant");
 
-// ── Environment config ────────────────────────────────────────────────────────
-// CORS_ORIGIN: comma-separated list of allowed frontend URLs
-//   e.g. "http://localhost:5173,https://my-app.vercel.app"
+
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173")
     .split(",")
     .map((o) => o.trim())

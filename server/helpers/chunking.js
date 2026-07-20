@@ -1,14 +1,5 @@
 /**
- * Improved text chunker for RAG pipelines.
- *
- * Strategy:
- *  1. Split the raw PDF text into paragraphs (blank-line boundaries).
- *  2. Accumulate paragraphs into a chunk until it reaches ~targetWords.
- *  3. If a single paragraph already exceeds targetWords, split it by sentence.
- *  4. Discard any fragment shorter than minWords (noise, page numbers, etc.).
- *
- * This produces chunks of roughly 500–800 words each, which is the sweet
- * spot for Gemini Embedding context and retrieval quality.
+ 
  *
  * @param {string} text       Raw text extracted from pdf-parse
  * @param {number} targetWords Target words per chunk (default 600)

@@ -7,13 +7,7 @@ function sleep(ms) {
 }
 
 /**
- * Create a Gemini text embedding with exponential-backoff retry on rate limits.
- * Adds a 250 ms pause after every successful call to respect free-tier RPM limits.
- *
- * SECURITY: errors are never logged in full — the raw Gemini error message can
- * contain the API key URL, model name, and internal details. We only log a
- * safe status code summary.
- *
+
  * @param {string} text
  * @param {number} [maxRetries=4]
  * @returns {Promise<number[]>} embedding vector
